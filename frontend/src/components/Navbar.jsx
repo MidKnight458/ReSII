@@ -38,6 +38,7 @@ const NAV_ITEMS = [
   {
     to: '/lince-hub',
     label: 'Comunidad / Asesorías',
+    shortLabel: 'Asesorías',
     icon: Users,
   },
 ];
@@ -50,29 +51,29 @@ export default function Navbar({ theme = 'light' }) {
   const displayedEmail = showFullEmail && userEmail ? userEmail : maskedEmail;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-300 bg-zinc-100/95 backdrop-blur-md">
-      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-8 lg:px-12 2xl:px-20">
-        <div className="flex items-center justify-between min-h-[68px] gap-4">
+    <header className="sticky top-0 z-40 w-full border-b border-zinc-300 bg-zinc-100/95 backdrop-blur-md">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-16">
+        <div className="flex items-center justify-between min-h-[64px] xl:min-h-[68px] gap-2 xl:gap-3 2xl:gap-4">
           {/* Identidad Institucional */}
           <NavLink
             to="/dashboard"
-            className="flex items-center gap-3 shrink-0 group focus:outline-none"
+            className="flex items-center gap-2.5 2xl:gap-3 shrink-0 group focus:outline-none"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-700 flex items-center justify-center shadow-sm border border-emerald-800 shrink-0">
+            <div className="w-9 h-9 2xl:w-10 2xl:h-10 rounded-xl bg-emerald-700 flex items-center justify-center shadow-sm border border-emerald-800 shrink-0">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div className="flex flex-col justify-center">
-              <span className="font-extrabold text-base sm:text-lg tracking-tight whitespace-nowrap leading-tight text-zinc-900">
+              <span className="font-extrabold text-sm sm:text-base 2xl:text-lg tracking-tight whitespace-nowrap leading-tight text-zinc-900">
                 SII <span className="text-emerald-700">TecNM Celaya</span>
               </span>
-              <span className="text-[11px] whitespace-nowrap leading-tight hidden sm:block text-zinc-600 font-medium">
+              <span className="text-[11px] whitespace-nowrap leading-tight hidden 2xl:block text-zinc-600 font-medium">
                 Sistema Integral de Información
               </span>
             </div>
           </NavLink>
 
           {/* Navegación Principal */}
-          <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2">
+          <nav className="hidden lg:flex items-center gap-1 2xl:gap-2 min-w-0">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               return (
@@ -80,7 +81,7 @@ export default function Navbar({ theme = 'light' }) {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                    `flex items-center gap-1.5 2xl:gap-2 px-2.5 2xl:px-3.5 py-2 rounded-xl text-xs xl:text-[13px] 2xl:text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
                       isActive
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm'
                         : 'text-zinc-700 hover:text-zinc-900 hover:bg-zinc-200 border border-transparent'
@@ -88,22 +89,31 @@ export default function Navbar({ theme = 'light' }) {
                   }
                 >
                   <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
+                  {item.shortLabel ? (
+                    <>
+                      <span className="xl:hidden">{item.shortLabel}</span>
+                      <span className="hidden xl:inline">{item.label}</span>
+                    </>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
                 </NavLink>
               );
             })}
           </nav>
 
           {/* Cuenta Institucional + Cerrar Sesión */}
-          <div className="hidden lg:flex items-center gap-3 shrink-0">
+          <div className="hidden lg:flex items-center gap-2 xl:gap-2.5 2xl:gap-3 shrink-0 min-w-0">
             {userEmail && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border bg-white border-zinc-300 text-zinc-800 text-xs whitespace-nowrap shadow-sm">
+              <div className="flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3 py-1.5 rounded-xl border bg-white border-zinc-300 text-zinc-800 text-xs shadow-sm min-w-0 max-w-[175px] xl:max-w-[225px] 2xl:max-w-[300px]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span className="font-mono font-bold">{displayedEmail}</span>
+                <span className="font-mono font-bold truncate min-w-0" title={displayedEmail}>
+                  {displayedEmail}
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowFullEmail((prev) => !prev)}
-                  className="ml-0.5 cursor-pointer text-zinc-500 hover:text-zinc-800 transition-colors"
+                  className="ml-0.5 shrink-0 cursor-pointer text-zinc-500 hover:text-zinc-800 transition-colors"
                   title={
                     showFullEmail
                       ? 'Ocultar correo institucional'
@@ -122,7 +132,7 @@ export default function Navbar({ theme = 'light' }) {
             <button
               type="button"
               onClick={logout}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer text-rose-700 bg-rose-100 hover:bg-rose-200 border border-rose-300 shadow-sm"
+              className="inline-flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3.5 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer text-rose-700 bg-rose-100 hover:bg-rose-200 border border-rose-300 shadow-sm"
             >
               <LogOut className="w-4 h-4 shrink-0" />
               <span>Cerrar sesión</span>
@@ -168,7 +178,10 @@ export default function Navbar({ theme = 'light' }) {
           })}
 
           <div className="pt-3 mt-2 border-t border-zinc-300 flex items-center justify-between gap-3">
-            <span className="text-xs font-mono font-bold text-zinc-700 truncate">
+            <span
+              className="text-xs font-mono font-bold text-zinc-700 truncate min-w-0"
+              title={displayedEmail}
+            >
               {displayedEmail}
             </span>
             <button

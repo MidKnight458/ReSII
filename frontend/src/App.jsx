@@ -19,13 +19,13 @@ function ProtectedLayout({ children, theme = 'light' }) {
   return (
     <ProtectedRoute>
       <div
-        className={`min-h-screen flex flex-col ${
+        className={`w-full min-h-screen flex flex-col overflow-x-clip ${
           isLight ? 'bg-zinc-200 text-zinc-900' : 'bg-slate-950 text-slate-100'
         }`}
       >
         <Navbar theme={theme} />
         <main
-          className={`flex-1 w-full max-w-[1920px] mx-auto px-4 sm:px-8 lg:px-12 2xl:px-20 py-6 sm:py-8 ${
+          className={`flex-1 w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-16 py-6 sm:py-8 ${
             isLight ? 'bg-zinc-200 text-zinc-900' : ''
           }`}
         >
