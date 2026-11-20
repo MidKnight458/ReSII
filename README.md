@@ -4,7 +4,15 @@
 
 Además de reunir en un solo lugar tu expediente, calificaciones, kárdex y horario, integra **LinceHub**, un espacio de apoyo estudiantil con bolsa de asesorías y diagnóstico temprano para acompañar tu desempeño durante el semestre.
 
-> 📘 **¿Buscas los detalles técnicos, arquitectura o referencia de endpoints?** Consulta la documentación técnica en [`README_TECNICO.md`](./README_TECNICO.md).
+### 🚀 Pruébalo en línea
+
+Puedes acceder directamente al portal desde cualquier navegador con tu correo institucional `@celaya.tecnm.mx`:
+
+👉 **[Abrir Portal ReSII — sii-itc-frontend-uwaa.onrender.com](https://sii-itc-frontend-uwaa.onrender.com)**
+
+> *Nota: El servicio se encuentra alojado en el plan gratuito de Render; si estuvo inactivo, el primer inicio de sesión puede tardar entre 30 y 50 segundos mientras despierta el servidor.*
+
+📘 *¿Buscas los detalles técnicos, arquitectura o referencia de endpoints? Consulta la documentación técnica en [`README_TECNICO.md`](./README_TECNICO.md).*
 
 ---
 
@@ -53,39 +61,6 @@ Aquí tienes algunas pantallas principales de la aplicación (puedes ver la gale
 - **Servidor intermedio**: Node.js y Express para conectar de forma segura con los servicios oficiales del SII ITC.
 - **Datos y análisis de apoyo**: Supabase y Edge Functions, con respaldo automático en memoria para funcionar en desarrollo incluso sin configurar servicios externos.
 - **Despliegue**: Contenedores con Docker Compose para desarrollo local y manifiesto listo para Render.
-
----
-
-## Cómo ejecutarlo localmente
-
-### Opción 1: Con Docker (recomendada)
-
-Desde la raíz del proyecto:
-
-```bash
-docker compose up --build
-```
-
-Al terminar de construir, la aplicación quedará disponible en:
-- **Portal web**: `http://localhost:5173`
-- **API local**: `http://localhost:4000`
-
-### Opción 2: Sin Docker (Node.js)
-
-1. Configura las variables de entorno tomando como base `.env.example` (o `backend/.env.example`). En local, LinceHub funciona automáticamente con respaldo en memoria si aún no configuras Supabase.
-2. Inicia el backend:
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-3. En otra terminal, inicia el frontend:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-4. Abre `http://localhost:5173` en tu navegador.
 
 ---
 
