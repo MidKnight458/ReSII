@@ -1,126 +1,105 @@
-# Portal Académico SII ITC — TecNM en Celaya (Examen 3)
+# ReSII — Portal Académico para Estudiantes del TecNM en Celaya
 
-Aplicación web Full-Stack que consume los servicios REST oficiales del **Sistema Integral de Información (SII) del Tecnológico Nacional de México en Celaya** (`https://sii.celaya.tecnm.mx/api`), implementando una **arquitectura de dos capas de Backend (BFF / Proxy Seguro)** y una interfaz reactiva moderna con **React + Vite + Tailwind CSS**.
+**ReSII** es una aplicación web moderna, clara y responsiva pensada para que las y los estudiantes del **Tecnológico Nacional de México en Celaya** consulten su información escolar oficial del **SII** desde una interfaz ágil y cómoda, sin importar si acceden desde computadora o celular.
+
+Además de reunir en un solo lugar tu expediente, calificaciones, kárdex y horario, integra **LinceHub**, un espacio de apoyo estudiantil con bolsa de asesorías y diagnóstico temprano para acompañar tu desempeño durante el semestre.
+
+> 📘 **¿Buscas los detalles técnicos, arquitectura o referencia de endpoints?** Consulta la documentación técnica en [`README_TECNICO.md`](./README_TECNICO.md).
 
 ---
 
-## 1. Arquitectura del Sistema (Dos Capas de Backend)
+## ¿Qué puedes hacer en ReSII?
 
-```text
-[ Navegador del Estudiante (React + Vite SPA :5173) ]
-                         │
-                         │  Peticiones HTTP + Header Authorization: Bearer <JWT>
-                         ▼
-[ Capa 1: Backend Local Propio / BFF (Node.js + Express :4000) ]
-         ├── /api/sii/*   ──► [ Capa 2: API Institucional SII ITC (https://sii.celaya.tecnm.mx/api) ]
-         └── /api/extra/* ──► [ Supabase + Edge Functions (con respaldo local en memoria) ]
+- **Inicio de sesión institucional**: Ingresa con tu correo oficial `@celaya.tecnm.mx`. Tu sesión se maneja en memoria privada durante la visita y puedes mostrar u ocultar tu correo completo en pantalla con un clic.
+- **Panel del estudiante (Dashboard)**: Visualiza tu fotografía oficial, número de control, carrera, semestre, promedios (ponderado y aritmético), créditos acumulados y complementarios, barra de avance reticular y accesos directos a tus módulos.
+- **Calificaciones con semáforo visual**: Consulta el detalle por unidad evaluada y tu promedio parcial o final con un código de color fácil de leer:
+  - 🟢 **Óptimo** (≥ 80)
+  - 🟡 **Regular o en espera de captura** (70–79 / pendiente)
+  - 🔴 **En riesgo** (< 70 o NA)
+  Incluye buscador por asignatura, clave o docente, filtro por periodo y vista intercambiable entre tarjetas y tabla.
+- **Kárdex académico**: Explora todo tu historial de materias cursadas y acreditadas, agrupado por semestre o en tabla general, con conteo de créditos, promedios y filtros por periodo, búsqueda o modalidad (ordinario y repetición).
+- **Horario de clases**: Revisa tu agenda semanal por bloques de hora —con el día actual resaltado, aulas y grupos— o cambia a la vista de tabla oficial con el total de materias y horas a la semana.
+- **LinceHub (Comunidad y Asesorías)**:
+  - *Bolsa de Asesorías*: Explora asesorías presenciales, en línea e híbridas, inscríbete en un clic, revisa cupos disponibles y evita empalmes de horario automáticamente.
+  - *Diagnóstico Académico*: Analiza tus calificaciones actuales y tu kárdex para detectar materias con unidades en riesgo (nivel preventivo o crítico) y sugerirte asesorías a tiempo.
+  - *Gestión Administrativa*: Permite registrar, editar, activar o pausar y eliminar programas de asesoría.
+
+---
+
+## Vistazo rápido
+
+Aquí tienes algunas pantallas principales de la aplicación (puedes ver la galería completa en [`README_TECNICO.md`](./README_TECNICO.md)):
+
+### Inicio de sesión institucional
+![Inicio de sesión institucional](https://github.com/user-attachments/assets/db9fa934-0b71-4be5-aa38-2843144e2e61)
+
+### Panel del estudiante (Dashboard)
+![Dashboard del estudiante](https://github.com/user-attachments/assets/f4d53dbf-cb17-40f2-9189-b5dac7acab88)
+
+### Calificaciones con semáforo de desempeño
+![Calificaciones con semáforo](https://github.com/user-attachments/assets/ca5e257f-4a71-4fcd-ae2b-30c591da9546)
+
+### Horario semanal de clases
+![Horario semanal de clases](https://github.com/user-attachments/assets/f6d82230-2fa5-4951-9b49-2da68bd0340e)
+
+### LinceHub — Asesorías y diagnóstico académico
+![LinceHub](https://github.com/user-attachments/assets/cefe9c3c-29ba-4e29-b7b0-f4f88dfd8cb2)
+
+---
+
+## Tecnologías principales
+
+- **Interfaz web**: React, Vite y Tailwind CSS, con iconografía de Lucide React.
+- **Servidor intermedio**: Node.js y Express para conectar de forma segura con los servicios oficiales del SII ITC.
+- **Datos y análisis de apoyo**: Supabase y Edge Functions, con respaldo automático en memoria para funcionar en desarrollo incluso sin configurar servicios externos.
+- **Despliegue**: Contenedores con Docker Compose para desarrollo local y manifiesto listo para Render.
+
+---
+
+## Cómo ejecutarlo localmente
+
+### Opción 1: Con Docker (recomendada)
+
+Desde la raíz del proyecto:
+
+```bash
+docker compose up --build
 ```
 
-### Decisiones Técnicas y Justificación del Stack
-- **Frontend — React + Vite + Tailwind CSS**:
-  - Elegido de la tabla oficial de tecnologías permitidas por su **arranque instantáneo con HMR (Hot Module Replacement)**, empaquetado optimizado y ligereza para Single Page Applications (SPA).
-  - **React Router DOM v7**: Navegación fluida sin recargas entre `Login`, `Dashboard`, `Calificaciones`, `Kardex`, `Horarios` y `LinceHub`, con protección de rutas privadas mediante `ProtectedRoute`.
-  - **Tailwind CSS v4 + Lucide React**: Diseño responsivo con identidad institucional TecNM Celaya, indicadores visuales tipo semáforo y componentes `Skeleton` de carga.
-- **Backend Intermedio — Node.js + Express**:
-  - Intermediario seguro entre el cliente web y `https://sii.celaya.tecnm.mx/api` que evita bloqueos de CORS, normaliza respuestas de error del SII, aplica cabeceras de seguridad (`Helmet`), control de tasa (`express-rate-limit`) y gestiona la lógica de negocio del Punto 5 (`/api/extra`) conectada a **Supabase** y su **Edge Function** (`academic-advisor`), manteniendo un modo de respaldo en memoria en caso de desconexión.
+Al terminar de construir, la aplicación quedará disponible en:
+- **Portal web**: `http://localhost:5173`
+- **API local**: `http://localhost:4000`
+
+### Opción 2: Sin Docker (Node.js)
+
+1. Configura las variables de entorno tomando como base `.env.example` (o `backend/.env.example`). En local, LinceHub funciona automáticamente con respaldo en memoria si aún no configuras Supabase.
+2. Inicia el backend:
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+3. En otra terminal, inicia el frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. Abre `http://localhost:5173` en tu navegador.
 
 ---
 
-## 2. Estructura del Monorepo
+## Documentación técnica (README secundario)
 
-```text
-/
-├── docker-compose.yml
-├── render.yaml
-├── .env.example
-├── README.md
-├── supabase/
-│   └── functions/
-│       └── academic-advisor/
-│           └── index.ts          # Edge Function de diagnóstico académico (Punto 5)
-├── backend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── .env.example
-│   └── src/
-│       ├── server.js             # Express app en puerto 4000, CORS, monta /api/sii y /api/extra
-│       ├── config/
-│       │   └── supabase.js       # Cliente de Supabase con respaldo en memoria
-│       ├── middleware/
-│       │   └── auth.middleware.js # Verifica header Authorization: Bearer <token>
-│       └── routes/
-│           ├── sii.routes.js     # Proxy hacia https://sii.celaya.tecnm.mx/api
-│           └── extra.routes.js   # API de LinceHub (Asesorías y Diagnóstico)
-└── frontend/
-    ├── Dockerfile
-    ├── nginx.conf                # Configuración Nginx con soporte SPA y cabeceras de seguridad
-    ├── package.json
-    ├── vite.config.js            # Configuración Vite en puerto 5173
-    ├── index.html
-    └── src/
-        ├── main.jsx
-        ├── App.jsx               # Definición de rutas (Puntos 1 al 5)
-        ├── index.css             # Tailwind CSS
-        ├── context/
-        │   └── AuthContext.jsx   # Manejo de sesión, token JWT en memoria privada, login y logout
-        ├── services/
-        │   └── api.js            # Instancia Axios hacia VITE_API_URL con interceptor Bearer
-        ├── components/
-        │   ├── ProtectedRoute.jsx
-        │   ├── Navbar.jsx        # Navegación principal (Puntos 2 al 5)
-        │   └── ui/
-        │       └── Skeleton.jsx
-        └── pages/
-            ├── LoginPage.jsx          # Inicio de sesión institucional (Punto 1)
-            ├── DashboardPage.jsx      # Expediente del estudiante (Punto 2)
-            ├── CalificacionesPage.jsx # Calificaciones con semáforo (Punto 3)
-            ├── KardexPage.jsx         # Historial académico (Punto 4)
-            ├── HorariosPage.jsx       # Horario semanal de clases (Punto 4)
-            └── ExtraFeaturePage.jsx   # LinceHub: Asesorías y diagnóstico (Punto 5)
-```
-
-### División de Archivos por Integrante
-| Integrante | Responsabilidad | Archivos Asignados |
-| :--- | :--- | :--- |
-| **Integrante 1** | Arquitectura Docker/Render, Proxy SII completo, Punto 1 (Auth), Punto 2 (Dashboard Estudiante) y Punto 3 (Calificaciones con Semáforo). | `docker-compose.yml`, `render.yaml`, `backend/src/server.js`, `backend/src/routes/sii.routes.js`, `frontend/src/App.jsx`, `LoginPage.jsx`, `DashboardPage.jsx`, `CalificacionesPage.jsx` |
-| **Integrante 2** | Punto 4 (Kardex y Horarios) y Punto 5 (Funcionalidad Adicional LinceHub + Supabase + Edge Function). | `frontend/src/pages/KardexPage.jsx`, `frontend/src/pages/HorariosPage.jsx`, `frontend/src/pages/ExtraFeaturePage.jsx`, `backend/src/routes/extra.routes.js`, `supabase/functions/academic-advisor/index.ts` |
+Si necesitas profundizar en la implementación del proyecto, la documentación técnica completa se conserva en [`README_TECNICO.md`](./README_TECNICO.md), donde encontrarás:
+- Arquitectura de dos capas de backend (BFF / proxy hacia el SII ITC).
+- Estructura completa de carpetas y archivos del monorepo.
+- Tabla de referencia de endpoints `/api/sii` y equivalencias oficiales.
+- Galería completa de capturas de pantalla de cada vista.
 
 ---
 
-## 3. Referencia de Endpoints del Backend Intermedio (`/api/sii`)
+## Autores
 
-| Método | Ruta Backend Local | Endpoint Oficial SII ITC | Autenticación | Estado |
-| :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/sii/login` | `POST /api/login` | JSON `{ email, password }` | Completo |
-| `GET` | `/api/sii/estudiante` | `GET /api/movil/estudiante` | `Bearer <token>` | Completo |
-| `GET` | `/api/sii/calificaciones` | `GET /api/movil/estudiante/calificaciones` | `Bearer <token>` | Completo |
-| `GET` | `/api/sii/kardex` | `GET /api/movil/estudiante/kardex` | `Bearer <token>` | Completo |
-| `GET` | `/api/sii/horarios` | `GET /api/movil/estudiante/horarios` | `Bearer <token>` | Completo |
-
----
-
-## 4. Capturas de Pantalla del Funcionamiento
-
-> - **1. Inicio de Sesión Institucional (`/login`)**: Validación de campos, manejo de errores y obtención de JWT.
-<img width="1279" height="652" alt="image" src="https://github.com/user-attachments/assets/db9fa934-0b71-4be5-aa38-2843144e2e61" />
-
-> - **2. Dashboard del Estudiante (`/dashboard`)**: Perfil institucional, tarjetas KPI, avance de créditos y skeleton loader.
-<img width="1694" height="945" alt="image" src="https://github.com/user-attachments/assets/f4d53dbf-cb17-40f2-9189-b5dac7acab88" />
-<img width="1635" height="918" alt="image" src="https://github.com/user-attachments/assets/5c54fc23-2d3d-434f-8d57-b5ac36c6b54c" />
-
-> - **3. Calificaciones (`/calificaciones`)**: Filtrado en tiempo real por materia/periodo y semáforo de desempeño (Verde / Amarillo / Rojo).
-<img width="1625" height="951" alt="image" src="https://github.com/user-attachments/assets/ca5e257f-4a71-4fcd-ae2b-30c591da9546" />
-
-> - **4. Kardex y Horario (`/kardex`, `/horarios`)**: Historial académico y agenda semanal.
-<img width="1633" height="918" alt="image" src="https://github.com/user-attachments/assets/56b2856e-9a49-4410-8fd2-09d7562d63e7" />
-<img width="1650" height="942" alt="image" src="https://github.com/user-attachments/assets/66b9e3ee-75df-4d4b-b2af-2e65d73297bd" />
-<img width="1658" height="938" alt="image" src="https://github.com/user-attachments/assets/f6d82230-2fa5-4951-9b49-2da68bd0340e" />
-<img width="1674" height="744" alt="image" src="https://github.com/user-attachments/assets/9efb57f3-0416-473b-822c-54b0ded2da83" />
-
-> - **5. LinceHub (`/lince-hub`)**: Funcionalidad adicional estudiantil.
-<img width="1661" height="939" alt="image" src="https://github.com/user-attachments/assets/cefe9c3c-29ba-4e29-b7b0-f4f88dfd8cb2" />
-<img width="1668" height="672" alt="image" src="https://github.com/user-attachments/assets/3072a196-edab-468d-afb1-b6ad4895ffad" />
-<img width="1616" height="878" alt="image" src="https://github.com/user-attachments/assets/5bb26fbe-c6bc-4367-ac6a-1b07e81d7b07" />
-<img width="1517" height="613" alt="image" src="https://github.com/user-attachments/assets/12f68dc9-2a76-4a98-aab3-7dcd12098da8" />
-<img width="1614" height="922" alt="image" src="https://github.com/user-attachments/assets/16da814a-48ed-4816-b77d-d438557a5c12" />
-<img width="1639" height="719" alt="image" src="https://github.com/user-attachments/assets/03cf42bc-d75b-437a-8007-da28266e801a" />
+- **MidKnight458** — [@MidKnight458](https://github.com/MidKnight458)
+- **John-Hdz** — [@John-Hdz](https://github.com/John-Hdz)
