@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, MapPin, Layers, Table2 } from 'lucide-react';
-import api from '../services/api';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  fetchHorarios as fetchHorariosCached,
+} from '../services/dataCache';
 import Skeleton from '../components/ui/Skeleton';
 
 const DAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
@@ -76,18 +80,28 @@ function normalizeClasses(schedule) {
 }
 
 export default function HorariosPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => {
+    const cached = getCachedData(CACHE_KEYS.HORARIOS);
+    return cached ? normalizeSchedule(cached) : null;
+  });
+  const [loading, setLoading] = useState(
+    () => !getCachedData(CACHE_KEYS.HORARIOS),
+  );
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('agenda');
 
   useEffect(() => {
+    if (getCachedData(CACHE_KEYS.HORARIOS)) {
+      setLoading(false);
+      return undefined;
+    }
+
     let active = true;
 
     const fetchHorarios = async () => {
       try {
-        const response = await api.get('/sii/horarios');
-        if (active) setData(normalizeSchedule(response.data));
+        const raw = await fetchHorariosCached();
+        if (active) setData(normalizeSchedule(raw));
       } catch (fetchError) {
         console.error('Error fetching horarios', fetchError);
         if (active) {

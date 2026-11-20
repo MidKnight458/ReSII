@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   User,
@@ -17,7 +17,12 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import api from '../services/api.js';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  fetchEstudiante,
+  prefetchRoute,
+} from '../services/dataCache.js';
 import { useAuth, maskInstitutionalEmail } from '../context/AuthContext.jsx';
 import { DashboardSkeleton } from '../components/ui/Skeleton.jsx';
 import {
@@ -229,20 +234,62 @@ function normalizeStudentProfile(rawPayload, fallbackEmail) {
 
 export default function DashboardPage() {
   const { userEmail, logout } = useAuth();
-  const [rawStudentData, setRawStudentData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [rawStudentData, setRawStudentData] = useState(() =>
+    getCachedData(CACHE_KEYS.ESTUDIANTE)
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => !getCachedData(CACHE_KEYS.ESTUDIANTE)
+  );
   const [errorMsg, setErrorMsg] = useState('');
   const [showSensitivePii, setShowSensitivePii] = useState(false);
   const [photoLoadError, setPhotoLoadError] = useState(false);
+  const hoverTimerRef = useRef(null);
 
-  const fetchStudentProfile = useCallback(async () => {
+  const cancelScheduledPrefetch = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
+  const schedulePrefetch = useCallback(
+    (path) => {
+      cancelScheduledPrefetch();
+      hoverTimerRef.current = setTimeout(() => {
+        hoverTimerRef.current = null;
+        prefetchRoute(path, userEmail);
+      }, 80);
+    },
+    [cancelScheduledPrefetch, userEmail]
+  );
+
+  useEffect(() => cancelScheduledPrefetch, [cancelScheduledPrefetch]);
+
+  const modulePrefetchProps = (path) => ({
+    onMouseEnter: () => schedulePrefetch(path),
+    onMouseLeave: cancelScheduledPrefetch,
+    onFocus: () => prefetchRoute(path, userEmail),
+    onTouchStart: () => prefetchRoute(path, userEmail),
+  });
+
+  const fetchStudentProfile = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = getCachedData(CACHE_KEYS.ESTUDIANTE);
+      if (cached) {
+        setRawStudentData(cached);
+        setErrorMsg('');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setErrorMsg('');
     setPhotoLoadError(false);
 
     try {
-      const response = await api.get('/sii/estudiante');
-      setRawStudentData(response.data);
+      const data = await fetchEstudiante({ force });
+      setRawStudentData(data);
     } catch (error) {
       const status = error?.response?.status;
       const serverMsg = extractText(error?.response?.data?.message, '');
@@ -295,7 +342,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
             type="button"
-            onClick={fetchStudentProfile}
+            onClick={() => fetchStudentProfile(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
@@ -370,7 +417,7 @@ export default function DashboardPage() {
 
           <button
             type="button"
-            onClick={fetchStudentProfile}
+            onClick={() => fetchStudentProfile(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-300 text-xs font-medium text-zinc-700 transition-colors cursor-pointer shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
@@ -632,6 +679,7 @@ export default function DashboardPage() {
             <div className="space-y-3">
               <Link
                 to="/calificaciones"
+                {...modulePrefetchProps('/calificaciones')}
                 className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all group shadow-sm"
               >
                 <div>
@@ -647,6 +695,7 @@ export default function DashboardPage() {
 
               <Link
                 to="/kardex"
+                {...modulePrefetchProps('/kardex')}
                 className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all group shadow-sm"
               >
                 <div>
@@ -662,6 +711,7 @@ export default function DashboardPage() {
 
               <Link
                 to="/horarios"
+                {...modulePrefetchProps('/horarios')}
                 className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all group shadow-sm"
               >
                 <div>
@@ -677,6 +727,7 @@ export default function DashboardPage() {
 
               <Link
                 to="/lince-hub"
+                {...modulePrefetchProps('/lince-hub')}
                 className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all group shadow-sm"
               >
                 <div>

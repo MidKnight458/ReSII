@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { prefetchRoute } from '../services/dataCache.js';
 
 const NAV_ITEMS = [
   {
@@ -47,6 +48,27 @@ export default function Navbar({ theme = 'light' }) {
   const { userEmail, maskedEmail, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showFullEmail, setShowFullEmail] = useState(false);
+  const hoverTimerRef = useRef(null);
+
+  const cancelScheduledPrefetch = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
+  const schedulePrefetch = useCallback(
+    (path) => {
+      cancelScheduledPrefetch();
+      hoverTimerRef.current = setTimeout(() => {
+        hoverTimerRef.current = null;
+        prefetchRoute(path, userEmail);
+      }, 80);
+    },
+    [cancelScheduledPrefetch, userEmail]
+  );
+
+  useEffect(() => cancelScheduledPrefetch, [cancelScheduledPrefetch]);
 
   const displayedEmail = showFullEmail && userEmail ? userEmail : maskedEmail;
 
@@ -57,6 +79,10 @@ export default function Navbar({ theme = 'light' }) {
           {/* Identidad Institucional */}
           <NavLink
             to="/dashboard"
+            onMouseEnter={() => schedulePrefetch('/dashboard')}
+            onMouseLeave={cancelScheduledPrefetch}
+            onFocus={() => prefetchRoute('/dashboard', userEmail)}
+            onTouchStart={() => prefetchRoute('/dashboard', userEmail)}
             className="flex items-center gap-2.5 2xl:gap-3 shrink-0 group focus:outline-none"
           >
             <div className="w-9 h-9 2xl:w-10 2xl:h-10 rounded-xl bg-emerald-700 flex items-center justify-center shadow-sm border border-emerald-800 shrink-0">
@@ -80,6 +106,9 @@ export default function Navbar({ theme = 'light' }) {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  onMouseEnter={() => schedulePrefetch(item.to)}
+                  onMouseLeave={cancelScheduledPrefetch}
+                  onFocus={() => prefetchRoute(item.to, userEmail)}
                   className={({ isActive }) =>
                     `flex items-center gap-1.5 2xl:gap-2 px-2.5 2xl:px-3.5 py-2 rounded-xl text-xs xl:text-[13px] 2xl:text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
                       isActive
@@ -163,6 +192,8 @@ export default function Navbar({ theme = 'light' }) {
                 key={item.to}
                 to={item.to}
                 onClick={() => setMobileMenuOpen(false)}
+                onTouchStart={() => prefetchRoute(item.to, userEmail)}
+                onFocus={() => prefetchRoute(item.to, userEmail)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${
                     isActive

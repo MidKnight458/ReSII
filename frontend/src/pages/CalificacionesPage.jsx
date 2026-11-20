@@ -14,13 +14,21 @@ import {
   UserCheck,
   Award,
 } from 'lucide-react';
-import api from '../services/api.js';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  fetchCalificaciones as fetchCalificacionesCached,
+} from '../services/dataCache.js';
 import { CalificacionesSkeleton } from '../components/ui/Skeleton.jsx';
 import { normalizeCalificacionesList, extractText } from '../utils/siiParser.js';
 
 export default function CalificacionesPage() {
-  const [rawCalificaciones, setRawCalificaciones] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [rawCalificaciones, setRawCalificaciones] = useState(() =>
+    getCachedData(CACHE_KEYS.CALIFICACIONES)
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => !getCachedData(CACHE_KEYS.CALIFICACIONES)
+  );
   const [errorMsg, setErrorMsg] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,13 +36,23 @@ export default function CalificacionesPage() {
   const [selectedSemaphore, setSelectedSemaphore] = useState('ALL');
   const [viewMode, setViewMode] = useState('cards');
 
-  const fetchCalificaciones = useCallback(async () => {
+  const fetchCalificaciones = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = getCachedData(CACHE_KEYS.CALIFICACIONES);
+      if (cached) {
+        setRawCalificaciones(cached);
+        setErrorMsg('');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setErrorMsg('');
 
     try {
-      const response = await api.get('/sii/calificaciones');
-      setRawCalificaciones(response.data);
+      const data = await fetchCalificacionesCached({ force });
+      setRawCalificaciones(data);
     } catch (error) {
       const serverMsg = extractText(error?.response?.data?.message, '');
       setErrorMsg(
@@ -156,7 +174,7 @@ export default function CalificacionesPage() {
         <p className="text-sm text-zinc-600">{errorMsg}</p>
         <button
           type="button"
-          onClick={fetchCalificaciones}
+          onClick={() => fetchCalificaciones(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" />
@@ -209,7 +227,7 @@ export default function CalificacionesPage() {
 
           <button
             type="button"
-            onClick={fetchCalificaciones}
+            onClick={() => fetchCalificaciones(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-50 border border-zinc-300 text-xs font-medium text-zinc-700 transition-colors cursor-pointer shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />

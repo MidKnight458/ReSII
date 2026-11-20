@@ -7,12 +7,31 @@ import {
   Search,
   Table2,
 } from 'lucide-react';
-import api from '../services/api';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  fetchKardex as fetchKardexCached,
+} from '../services/dataCache';
 import Skeleton from '../components/ui/Skeleton';
 
 const getNumber = (value) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+};
+
+const parseKardexResponse = (raw) => {
+  const payload = raw?.data ?? raw;
+  const porcentaje = getNumber(
+    payload?.porcentaje_avance ?? raw?.porcentaje_avance,
+  );
+  return {
+    porcentaje: porcentaje ?? 0,
+    kardex: Array.isArray(payload?.kardex)
+      ? payload.kardex
+      : Array.isArray(raw?.kardex)
+        ? raw.kardex
+        : [],
+  };
 };
 
 const getBadgeColor = (calificacion) => {
@@ -27,8 +46,11 @@ const getBadgeColor = (calificacion) => {
 };
 
 export default function KardexPage() {
-  const [data, setData] = useState({ kardex: [], porcentaje: 0 });
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => {
+    const cached = getCachedData(CACHE_KEYS.KARDEX);
+    return cached ? parseKardexResponse(cached) : { kardex: [], porcentaje: 0 };
+  });
+  const [loading, setLoading] = useState(() => !getCachedData(CACHE_KEYS.KARDEX));
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('grouped');
   const [search, setSearch] = useState('');
@@ -36,26 +58,18 @@ export default function KardexPage() {
   const [filterDesc, setFilterDesc] = useState('');
 
   useEffect(() => {
+    if (getCachedData(CACHE_KEYS.KARDEX)) {
+      setLoading(false);
+      return undefined;
+    }
+
     let active = true;
 
     const fetchKardex = async () => {
       try {
-        const response = await api.get('/sii/kardex');
-        const raw = response.data;
-        const payload = raw?.data ?? raw;
-        const porcentaje = getNumber(
-          payload?.porcentaje_avance ?? raw?.porcentaje_avance,
-        );
-
+        const raw = await fetchKardexCached();
         if (active) {
-          setData({
-            porcentaje: porcentaje ?? 0,
-            kardex: Array.isArray(payload?.kardex)
-              ? payload.kardex
-              : Array.isArray(raw?.kardex)
-                ? raw.kardex
-                : [],
-          });
+          setData(parseKardexResponse(raw));
         }
       } catch (fetchError) {
         console.error('Error fetching kardex', fetchError);

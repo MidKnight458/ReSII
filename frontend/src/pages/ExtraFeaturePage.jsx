@@ -14,6 +14,16 @@ import {
   XCircle,
 } from 'lucide-react';
 import api from '../services/api';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  invalidateCacheKeys,
+  fetchAsesorias,
+  fetchMisAsesorias,
+  fetchCalificaciones,
+  fetchKardex,
+  fetchAdvisor,
+} from '../services/dataCache';
 import { useAuth } from '../context/AuthContext';
 import Skeleton from '../components/ui/Skeleton';
 
@@ -46,38 +56,32 @@ function getErrorMessage(error, fallback) {
   );
 }
 
-function getPayload(response) {
-  return response?.data?.data ?? response?.data ?? {};
-}
-
-function getCalificaciones(value, depth = 0) {
-  if (depth > 4 || !value) return [];
-  if (Array.isArray(value)) {
-    return value.flatMap((item) =>
-      item && Array.isArray(item.materias)
-        ? getCalificaciones(item.materias, depth + 1)
-        : [item],
-    );
-  }
-  if (typeof value !== 'object') return [];
-
-  for (const key of ['calificaciones', 'calificaiones', 'materias', 'data']) {
-    if (value[key] && typeof value[key] === 'object') {
-      const entries = getCalificaciones(value[key], depth + 1);
-      if (entries.length > 0) return entries;
-    }
-  }
-  return [];
+function unwrapArrayPayload(raw) {
+  const payload = raw?.data ?? raw;
+  return Array.isArray(payload) ? payload : [];
 }
 
 export default function ExtraFeaturePage() {
   const { userEmail } = useAuth();
   const [activeTab, setActiveTab] = useState('asesorias');
   const [asesoriasSubTab, setAsesoriasSubTab] = useState('explorar');
-  const [asesorias, setAsesorias] = useState([]);
-  const [misAsesorias, setMisAsesorias] = useState([]);
-  const [diagnostico, setDiagnostico] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [asesorias, setAsesorias] = useState(() =>
+    unwrapArrayPayload(getCachedData(CACHE_KEYS.ASESORIAS)),
+  );
+  const [misAsesorias, setMisAsesorias] = useState(() =>
+    unwrapArrayPayload(getCachedData(CACHE_KEYS.MIS_ASESORIAS)),
+  );
+  const [diagnostico, setDiagnostico] = useState(() =>
+    getCachedData(CACHE_KEYS.ADVISOR),
+  );
+  const [loading, setLoading] = useState(
+    () =>
+      !(
+        getCachedData(CACHE_KEYS.ASESORIAS) &&
+        getCachedData(CACHE_KEYS.MIS_ASESORIAS) &&
+        getCachedData(CACHE_KEYS.ADVISOR)
+      ),
+  );
   const [listError, setListError] = useState('');
   const [misAsesoriasError, setMisAsesoriasError] = useState('');
   const [diagnosticoError, setDiagnosticoError] = useState('');
@@ -86,95 +90,94 @@ export default function ExtraFeaturePage() {
   const [editingId, setEditingId] = useState(null);
   const [newForm, setNewForm] = useState(INITIAL_FORM);
 
-  const fetchData = useCallback(async (showLoading = false) => {
-    if (showLoading) setLoading(true);
-    setListError('');
-    setDiagnosticoError('');
+  const fetchData = useCallback(
+    async (showLoading = false, { forceExtra = false } = {}) => {
+      const hasAllCached =
+        !forceExtra &&
+        Boolean(
+          getCachedData(CACHE_KEYS.ASESORIAS) &&
+            getCachedData(CACHE_KEYS.MIS_ASESORIAS) &&
+            getCachedData(CACHE_KEYS.ADVISOR),
+        );
 
-    const [
-      asesoriasResult,
-      misAsesoriasResult,
-      calificacionesResult,
-      kardexResult,
-    ] =
-      await Promise.allSettled([
-        api.get('/extra/asesorias'),
-        api.get('/extra/mis-asesorias', {
-          params: { alumno_id: userEmail },
-        }),
-        api.get('/sii/calificaciones'),
-        api.get('/sii/kardex'),
+      if (showLoading && !hasAllCached) {
+        setLoading(true);
+      }
+      setListError('');
+      setDiagnosticoError('');
+
+      const [
+        asesoriasResult,
+        misAsesoriasResult,
+        calificacionesResult,
+        kardexResult,
+      ] = await Promise.allSettled([
+        fetchAsesorias({ force: forceExtra }),
+        fetchMisAsesorias(userEmail, { force: forceExtra }),
+        fetchCalificaciones(),
+        fetchKardex(),
       ]);
 
-    if (asesoriasResult.status === 'fulfilled') {
-      const payload = getPayload(asesoriasResult.value);
-      setAsesorias(Array.isArray(payload) ? payload : []);
-    } else {
-      setListError(
-        getErrorMessage(
-          asesoriasResult.reason,
-          'No fue posible cargar las asesorías.',
-        ),
-      );
-    }
-
-    if (misAsesoriasResult.status === 'fulfilled') {
-      const payload = getPayload(misAsesoriasResult.value);
-      setMisAsesorias(Array.isArray(payload) ? payload : []);
-      setMisAsesoriasError('');
-    } else {
-      setMisAsesoriasError(
-        getErrorMessage(
-          misAsesoriasResult.reason,
-          'No fue posible cargar tus asesorías inscritas.',
-        ),
-      );
-    }
-
-    if (
-      calificacionesResult.status === 'fulfilled' &&
-      kardexResult.status === 'fulfilled'
-    ) {
-      try {
-        const calificacionesPayload = getCalificaciones(
-          calificacionesResult.value?.data,
-        );
-        const kardexResponse = kardexResult.value?.data;
-        const kardexPayload = kardexResponse?.data ?? kardexResponse ?? {};
-        const advisorResponse = await api.post('/extra/advisor', {
-          calificaciones: calificacionesPayload,
-          kardex: Array.isArray(kardexPayload?.kardex)
-            ? kardexPayload.kardex
-            : Array.isArray(kardexResponse?.kardex)
-              ? kardexResponse.kardex
-              : [],
-        });
-        setDiagnostico(advisorResponse.data);
-      } catch (error) {
-        setDiagnostico(null);
-        setDiagnosticoError(
+      if (asesoriasResult.status === 'fulfilled') {
+        setAsesorias(unwrapArrayPayload(asesoriasResult.value));
+      } else {
+        setListError(
           getErrorMessage(
-            error,
-            'No fue posible generar el diagnóstico académico.',
+            asesoriasResult.reason,
+            'No fue posible cargar las asesorías.',
           ),
         );
       }
-    } else {
-      const failedRequest =
-        calificacionesResult.status === 'rejected'
-          ? calificacionesResult.reason
-          : kardexResult.reason;
-      setDiagnostico(null);
-      setDiagnosticoError(
-        getErrorMessage(
-          failedRequest,
-          'No fue posible obtener los datos académicos para generar el diagnóstico.',
-        ),
-      );
-    }
 
-    if (showLoading) setLoading(false);
-  }, [userEmail]);
+      if (misAsesoriasResult.status === 'fulfilled') {
+        setMisAsesorias(unwrapArrayPayload(misAsesoriasResult.value));
+        setMisAsesoriasError('');
+      } else {
+        setMisAsesoriasError(
+          getErrorMessage(
+            misAsesoriasResult.reason,
+            'No fue posible cargar tus asesorías inscritas.',
+          ),
+        );
+      }
+
+      if (
+        calificacionesResult.status === 'fulfilled' &&
+        kardexResult.status === 'fulfilled'
+      ) {
+        try {
+          const advisorData = await fetchAdvisor(
+            calificacionesResult.value,
+            kardexResult.value,
+          );
+          setDiagnostico(advisorData);
+        } catch (error) {
+          setDiagnostico(null);
+          setDiagnosticoError(
+            getErrorMessage(
+              error,
+              'No fue posible generar el diagnóstico académico.',
+            ),
+          );
+        }
+      } else {
+        const failedRequest =
+          calificacionesResult.status === 'rejected'
+            ? calificacionesResult.reason
+            : kardexResult.reason;
+        setDiagnostico(null);
+        setDiagnosticoError(
+          getErrorMessage(
+            failedRequest,
+            'No fue posible obtener los datos académicos para generar el diagnóstico.',
+          ),
+        );
+      }
+
+      if (showLoading) setLoading(false);
+    },
+    [userEmail],
+  );
 
   useEffect(() => {
     fetchData(true);
@@ -185,8 +188,9 @@ export default function ExtraFeaturePage() {
     setActionMessage(null);
     try {
       await operation();
+      invalidateCacheKeys([CACHE_KEYS.ASESORIAS, CACHE_KEYS.MIS_ASESORIAS]);
       setActionMessage({ type: 'success', text: successMessage });
-      await fetchData();
+      await fetchData(false, { forceExtra: true });
     } catch (error) {
       setActionMessage({
         type: 'error',

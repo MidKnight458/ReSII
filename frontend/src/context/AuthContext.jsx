@@ -4,6 +4,7 @@ import api, {
   getAuthToken,
   clearAuthToken,
 } from '../services/api.js';
+import { clearPrefetchCache } from '../services/dataCache.js';
 
 const AuthContext = createContext(null);
 
@@ -68,6 +69,7 @@ export function AuthProvider({ children }) {
   // Limpiar cualquier rastro previo en localStorage/sessionStorage al iniciar para no exponer tokens en DevTools
   useEffect(() => {
     clearAuthToken();
+    clearPrefetchCache();
     setIsLoadingAuth(false);
   }, []);
 
@@ -75,6 +77,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handleSessionExpired = (event) => {
       clearAuthToken();
+      clearPrefetchCache();
       setToken(null);
       setUserEmail('');
       setSessionAlert(
@@ -127,6 +130,7 @@ export function AuthProvider({ children }) {
         };
       }
 
+      clearPrefetchCache();
       setAuthToken(extractedToken);
       setToken(extractedToken);
       setUserEmail(cleanEmail);
@@ -174,6 +178,7 @@ export function AuthProvider({ children }) {
    */
   const logout = useCallback(() => {
     clearAuthToken();
+    clearPrefetchCache();
     setToken(null);
     setUserEmail('');
     setSessionAlert('');
@@ -188,6 +193,7 @@ export function AuthProvider({ children }) {
     if (!currentToken || isJwtExpired(currentToken)) {
       if (token) {
         clearAuthToken();
+        clearPrefetchCache();
         setToken(null);
         setUserEmail('');
         setSessionAlert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
